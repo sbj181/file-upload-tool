@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { FiShare2, FiDownload, FiFileText, FiX } from 'react-icons/fi';
+import { FiShare2, FiDownload, FiX } from 'react-icons/fi';
 import {
   FaFilePdf,
   FaFileWord,
@@ -55,8 +55,7 @@ const getFileIcon = (file: File) => {
 
 const Upload: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
-  const [progress, setProgress] = useState<number[]>([]);
-  const [statusMessage, setStatusMessage] = useState<string>('');
+  // Removed 'progress' and 'statusMessage' since they are not used
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [s3Urls, setS3Urls] = useState<string[]>([]);
 
@@ -64,7 +63,6 @@ const Upload: React.FC = () => {
     onDrop: (acceptedFiles: File[]) => {
       setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
       setIsSuccess(false);
-      setStatusMessage('');
     },
     multiple: true,
   });
@@ -83,28 +81,23 @@ const Upload: React.FC = () => {
     }
 
     try {
-      setStatusMessage('Uploading...');
       toast.loading('Uploading...');
 
       const uploadedUrls: string[] = [];
-      const progressArr: number[] = Array(files.length).fill(0);
 
       for (let i = 0; i < files.length; i++) {
         const uploadedUrl = await uploadToS3(files[i]);
         uploadedUrls.push(uploadedUrl);
-        progressArr[i] = 100;
-        setProgress([...progressArr]);
       }
 
       setS3Urls(uploadedUrls);
       toast.dismiss();
       toast.success('Upload successful!');
       setIsSuccess(true);
-    } catch (error) {
+    } catch {
       toast.dismiss();
       toast.error('Error uploading files');
       setIsSuccess(false);
-      setProgress(Array(files.length).fill(0));
     }
   };
 
