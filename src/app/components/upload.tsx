@@ -13,10 +13,12 @@ import {
   FaFileVideo,
   FaFileImage,
   FaFile,
-} from 'react-icons/fa'; // Import different file type icons
+} from 'react-icons/fa';
 import { uploadToS3 } from '@/app/lib/s3';
-import ThemeToggle from '@/app/components/ThemeToggler'; // Import the toggle component
+import ThemeToggle from '@/app/components/ThemeToggler';
+import toast, { Toaster } from 'react-hot-toast'; // Toast for notifications
 
+// Function to get the file icon
 const getFileIcon = (file: File) => {
   const extension = file.name.split('.').pop()?.toLowerCase();
   const iconSize = "w-5 h-5 mr-2"; // Icon size globally
@@ -39,7 +41,7 @@ const getFileIcon = (file: File) => {
     case 'jpeg':
     case 'ai':
     case 'gif':
-      return <FaFileImage className={`text-orange-500 ml-[-0.2em]  ${iconSize}`} />;
+      return <FaFileImage className={`text-orange-500 ml-[-0.15em]  ${iconSize}`} />;
     case 'zip':
     case 'rar':
       return <FaFileArchive className={`text-yellow-500 ${iconSize}`} />;
@@ -47,7 +49,7 @@ const getFileIcon = (file: File) => {
     case 'mov':
       return <FaFileVideo className={`text-purple-500 ml-[-0.15em]  ${iconSize}`} />;
     default:
-      return <FaFile className={`text-gray-500 ml-[-0.15em]  ${iconSize}`} />; // Default icon
+      return <FaFile className={`text-gray-500 ml-[-0.15em]  ${iconSize}`} />;
   }
 };
 
@@ -60,44 +62,47 @@ const Upload: React.FC = () => {
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop: (acceptedFiles: File[]) => {
-      setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]); 
+      setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]);
       setIsSuccess(false);
       setStatusMessage('');
     },
-    multiple: true, 
+    multiple: true,
   });
 
   // Remove a file from the list
   const handleRemoveFile = (index: number) => {
     const newFiles = [...files];
-    newFiles.splice(index, 1); // Remove the file at the specified index
+    newFiles.splice(index, 1);
     setFiles(newFiles);
   };
 
   const handleUpload = async () => {
     if (files.length === 0) {
-      setStatusMessage('No files selected');
+      toast.error('No files selected');
       return;
     }
 
     try {
       setStatusMessage('Uploading...');
+      toast.loading('Uploading...');
+
       const uploadedUrls: string[] = [];
       const progressArr: number[] = Array(files.length).fill(0);
 
       for (let i = 0; i < files.length; i++) {
         const uploadedUrl = await uploadToS3(files[i]);
         uploadedUrls.push(uploadedUrl);
-        progressArr[i] = 100; 
+        progressArr[i] = 100;
         setProgress([...progressArr]);
       }
 
       setS3Urls(uploadedUrls);
-      setStatusMessage('Upload successful!');
+      toast.dismiss();
+      toast.success('Upload successful!');
       setIsSuccess(true);
     } catch (error) {
-      setStatusMessage('Error uploading files');
-      console.error(error);
+      toast.dismiss();
+      toast.error('Error uploading files');
       setIsSuccess(false);
       setProgress(Array(files.length).fill(0));
     }
@@ -105,6 +110,8 @@ const Upload: React.FC = () => {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-slate-900">
+      <Toaster /> {/* Toast notifications */}
+      
       {/* Theme Toggle - Top Right */}
       <div className="absolute top-4 right-4">
         <ThemeToggle />
@@ -125,10 +132,9 @@ const Upload: React.FC = () => {
             {files.map((file, index) => (
               <li key={file.name} className="flex justify-between items-center text-slate-500 dark:text-slate-300 text-left leading-snug text-sm"> 
                 <div className="flex items-center">
-                  {getFileIcon(file)} {/* Icon for the file */}
+                  {getFileIcon(file)}
                   {file.name}
                 </div>
-                {/* Delete icon */}
                 <button onClick={() => handleRemoveFile(index)}>
                   <FiX className="text-red-500 w-5 h-5 hover:text-red-700" />
                 </button>
@@ -144,42 +150,39 @@ const Upload: React.FC = () => {
           Upload
         </button>
 
-        {statusMessage && (
-          <p
-            className={`mt-4 ${isSuccess ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}
-          >
-            {statusMessage}
-          </p>
-        )}
-
         {isSuccess &&
           s3Urls.map((url, index) => (
             <div className="mt-4 text-left" key={index}>
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 dark:text-blue-400 underline"
-              >
-                View file {index + 1}
-              </a>
-              <div className="flex mt-2 space-x-2">
-                <button
-                  onClick={() => navigator.clipboard.writeText(url)}
-                  className="flex items-center space-x-1 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
-                >
-                  <FiShare2 className="w-5 h-5" />
-                  <span>Copy Link</span>
-                </button>
-
+              <div className="flex justify-between items-center">
                 <a
                   href={url}
-                  download
-                  className="flex items-center space-x-1 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 dark:text-blue-400 underline"
                 >
-                  <FiDownload className="w-5 h-5" />
-                  <span>Download</span>
+                  {files[index].name}
                 </a>
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(url);
+                      toast.success('Link copied to clipboard');
+                    }}
+                    className="flex items-center space-x-1 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
+                  >
+                    <FiShare2 className="w-5 h-5" />
+                    <span>Copy Link</span>
+                  </button>
+
+                  <a
+                    href={url}
+                    download
+                    className="flex items-center space-x-1 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
+                  >
+                    <FiDownload className="w-5 h-5" />
+                    <span>Download</span>
+                  </a>
+                </div>
               </div>
             </div>
           ))}
