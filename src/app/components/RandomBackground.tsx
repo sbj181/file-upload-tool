@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 
-const RandomBackground: React.FC = ({ children }) => {
+const RandomBackground: React.FC<React.PropsWithChildren<object>> = ({ children }) => {
   const [backgroundUrl, setBackgroundUrl] = useState<string>('');
 
   useEffect(() => {
@@ -13,19 +13,17 @@ const RandomBackground: React.FC = ({ children }) => {
 
   return (
     <>
-    <div className='absolute w-full h-full opacity-50 bg-slate-300 dark:bg-slate-900'></div>
-    <div
-      className="flex items-center justify-center w-full h-screen"
-      style={{
-        backgroundImage: `url(${backgroundUrl})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        
-      }}
-    >
-      {children}
-    </div>
-   
+      <div className='absolute w-full h-full opacity-50 bg-slate-300 dark:bg-slate-900'></div>
+      <div
+        className="flex items-center bg-opacity-25 justify-center w-full h-screen"
+        style={{
+          backgroundImage: `url(${backgroundUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {children}
+      </div>
     </>
   );
 };
