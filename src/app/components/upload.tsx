@@ -56,7 +56,7 @@ const Upload: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState<number[]>([]);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
-  const [s3Urls, setS3Urls] = useState<string[]>([]);
+  const [s3Urls] = useState<string[]>([]);
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop: (acceptedFiles: File[]) => {
@@ -119,10 +119,13 @@ const Upload: React.FC = () => {
         
         {files.length > 0 && (
         <div className='max-h-60 overflow-auto mt-4'>
-            <ul className="mb-5 space-y-4">
+            <ul className="mb-5 space-y-2">
             {files.map((file, index) => (
-                <li key={file.name} className="flex flex-col text-slate-500 dark:text-slate-300 text-left leading-snug items-start text-sm">
-                <div className="flex items-center">
+                <li 
+                  key={file.name} 
+                  className={`flex flex-col text-slate-500 dark:text-slate-300 text-left leading-snug items-start text-sm 
+                  ${index % 2 === 0 ? 'bg-gray-100 dark:bg-slate-800' : 'bg-white dark:bg-slate-700'} p-3 rounded-sm`}
+                >                <div className="flex items-center">
                     {getFileIcon(file)}
                     <span className="flex-1">{file.name}</span>
 
