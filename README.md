@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# S3 File Upload Tool
 
-## Getting Started
+This is a file upload tool built using Next.js and Tailwind CSS. It allows users to drag and drop files for upload, and supports sharing and downloading of files through a generated S3 link.
 
-First, run the development server:
+## Features
+
+- **Drag and Drop File Upload**: Users can drag and drop files or select files manually for upload.
+- **AWS S3 Integration**: Uploaded files are stored in an AWS S3 bucket.
+- **Progress Indicator**: The upload progress is shown with a visual progress bar.
+- **Download and Share**: Uploaded files can be downloaded or shared via a generated link.
+- **Styled with Tailwind CSS**: Tailwind CSS is used for responsive and modern styling.
+
+## Setup and Installation
+
+### Prerequisites
+
+- Node.js
+- pnpm (preferred) or npm
+- AWS account with an S3 bucket and appropriate credentials
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone git@github.com:your-username/s3fileuploadtool.git
+   ```
+
+2. Navigate to the project directory:
+
+   ```bash
+   cd s3fileuploadtool
+   ```
+
+3. Install dependencies using pnpm:
+
+   ```bash
+   pnpm install
+   ```
+
+4. Set up your AWS credentials in a `.env.local` file in the root directory:
+
+   ```bash
+   AWS_ACCESS_KEY_ID=your-access-key-id
+   AWS_SECRET_ACCESS_KEY=your-secret-access-key
+   ```
+
+5. Start the development server:
+
+   ```bash
+   pnpm dev
+   ```
+
+## Deployment
+
+This project is ready to be deployed on Vercel. Simply link your GitHub repository, and Vercel will handle the build and deployment.
+
+## Build for Production
+
+To create a production build, run:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Project Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+├── src
+│   ├── app
+│   │   ├── components
+│   │   │   └── upload.tsx
+│   │   ├── fonts
+│   │   ├── lib
+│   │   │   └── s3.ts
+│   │   └── layout.tsx
+│   │   └── page.tsx
+│   └── styles
+│       └── globals.css
+├── tailwind.config.ts
+├── postcss.config.mjs
+├── next.config.mjs
+├── .env.local
+└── README.md
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## License
 
-## Learn More
+This project is licensed under the MIT License.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Developed by Scott Johnson.  
+Check out my other projects at [sbjgraphics.com](http://sbjgraphics.com).
+# file-upload-tool
