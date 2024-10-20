@@ -88,6 +88,6 @@ pnpm build
 
 This project is licensed under the MIT License.
 
-Developed by Scott Johnson.  
+👨🏼‍💻 Developed by Scott Johnson.  
 Check out my other projects at [sbjgraphics.com](http://sbjgraphics.com).
-# file-upload-tool
+

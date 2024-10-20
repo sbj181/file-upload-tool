@@ -1,6 +1,7 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import "./globals.css";
+import "./globals.css"; // Tailwind is imported here, so it's globally available
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
