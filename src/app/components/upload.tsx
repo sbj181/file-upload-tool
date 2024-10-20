@@ -30,7 +30,7 @@ const getFileIcon = (file: File) => {
       return <FaFileWord className={`text-blue-500 ${iconSize}`} />;
     case 'ppt':
     case 'pptx':
-      return <FaFilePowerpoint className={`text-orange-500 ${iconSize}`} />;
+      return <FaFilePowerpoint className={`text-orange-500  ml-[-0.15em] ${iconSize}`} />;
     case 'xls':
     case 'xlsx':
       return <FaFileExcel className={`text-green-500 ${iconSize}`} />;
@@ -43,7 +43,7 @@ const getFileIcon = (file: File) => {
       return <FaFileImage className={`text-orange-500 ml-[-0.15em]  ${iconSize}`} />;
     case 'zip':
     case 'rar':
-      return <FaFileArchive className={`text-yellow-500 ${iconSize}`} />;
+      return <FaFileArchive className={`text-yellow-500  ml-[-0.15em] ${iconSize}`} />;
     case 'mp4':
     case 'mov':
       return <FaFileVideo className={`text-purple-500 ml-[-0.15em]  ${iconSize}`} />;
@@ -77,34 +77,29 @@ const Upload: React.FC = () => {
       toast.error('No files selected');
       return;
     }
-
+  
     try {
-      toast.loading('Uploading...');
-      const uploadedUrls: string[] = [];
       const progressArr: number[] = Array(files.length).fill(0);
-
+      
       for (let i = 0; i < files.length; i++) {
-        const uploadedUrl = await uploadToS3(files[i]);
-        uploadedUrls.push(uploadedUrl);
-        progressArr[i] = 100; // Update progress for each file
-        setProgress([...progressArr]);
+        await uploadToS3(files[i], (percentCompleted) => {
+          progressArr[i] = percentCompleted;
+          setProgress([...progressArr]); // Update progress for each file
+        });
       }
-
-      setS3Urls(uploadedUrls);
+      
       setIsSuccess(true);
-      toast.dismiss(); // Dismiss the loading toast
       toast.success('Upload successful!');
     } catch (error) {
       console.error(error);
       setIsSuccess(false);
       setProgress(Array(files.length).fill(0));
-      toast.dismiss(); // Dismiss the loading toast
       toast.error('Error uploading files');
     }
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-slate-900">
+    <div className="relative w-full flex flex-col items-center justify-center min-h-screen ">
       {/* Theme Toggle - Top Right */}
       <div className="absolute top-4 right-4">
         <ThemeToggle />
@@ -121,30 +116,37 @@ const Upload: React.FC = () => {
         </div>
 
         {/* Display selected files */}
+        
         {files.length > 0 && (
-          <ul className="mb-5 space-y-4">
-          {files.map((file, index) => (
-            <li key={file.name} className="flex flex-col text-slate-500 dark:text-slate-300 text-left leading-snug items-start text-sm">
-              <div className="flex items-center">
-                {getFileIcon(file)}
-                <span className="flex-1">{file.name}</span>
-              </div>
-        
-              {/* Show progress bar */}
-              {progress[index] > 0 && (
-                <div className="w-full bg-gray-200 rounded-full h-4 mt-2"> {/* Add margin to separate it */}
-                  <div
-                    className="bg-blue-600 h-4 rounded-full"
-                    style={{ width: `${progress[index]}%` }}
-                  ></div>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-        
-        )}
+        <div className='max-h-60 overflow-auto mt-4'>
+            <ul className="mb-5 space-y-4">
+            {files.map((file, index) => (
+                <li key={file.name} className="flex flex-col text-slate-500 dark:text-slate-300 text-left leading-snug items-start text-sm">
+                <div className="flex items-center">
+                    {getFileIcon(file)}
+                    <span className="flex-1">{file.name}</span>
 
+                    {/* Remove file before upload */}
+                    <button onClick={() => removeFile(file)} className="ml-2">
+                    <FiX className="text-red-500 w-4 h-4" />
+                    </button>
+                </div>
+            
+                {/* Show progress bar */}
+                {progress[index] > 0 && (
+                    <div className="w-full bg-gray-200 rounded-full h-4 mt-2"> {/* Add margin to separate it */}
+                    <div
+                        className="bg-blue-600 h-4 rounded-full"
+                        style={{ width: `${progress[index]}%` }}
+                    ></div>
+                    </div>
+                )}
+                </li>
+            ))}
+            </ul>
+        </div>
+        )}
+       
         <button
           onClick={handleUpload}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 dark:bg-blue-700"

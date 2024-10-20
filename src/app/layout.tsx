@@ -1,18 +1,14 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Kumbh_Sans } from "next/font/google"; // Import Kumbh Sans from Google Fonts
 import "./globals.css"; // Tailwind is imported here, so it's globally available
 import { Toaster } from "react-hot-toast"; // Import Toaster from react-hot-toast
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+// Load Kumbh Sans Google Font
+const kumbhSans = Kumbh_Sans({
+  subsets: ["latin"],
+  weight: ["400", "700"], // Customize the weights you need
+  variable: "--font-kumbh-sans", // Tailwind CSS variable
 });
 
 export const metadata: Metadata = {
@@ -28,9 +24,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${kumbhSans.variable} antialiased`} // Use Kumbh Sans variable here
       >
-       <Toaster position="top-right" reverseOrder={false} /> {/* Add Toaster here */}
+        <Toaster position="top-right" reverseOrder={false} /> {/* Add Toaster here */}
         {children}
       </body>
     </html>

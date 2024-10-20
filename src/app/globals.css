@@ -17,7 +17,7 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-kumbh-sans), Arial, Helvetica, sans-serif; /* Use Kumbh Sans here */
 }
 
 @layer utilities {

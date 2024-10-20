@@ -9,6 +9,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-kumbh-sans)', 'sans-serif'], // Default sans-serif to Kumbh Sans
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",

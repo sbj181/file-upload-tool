@@ -1,4 +1,3 @@
-// src/lib/s3.ts
 import AWS from 'aws-sdk';
 
 const s3 = new AWS.S3({
@@ -7,7 +6,7 @@ const s3 = new AWS.S3({
   region: 'us-east-1',
 });
 
-export const uploadToS3 = async (file: File): Promise<string> => {
+export const uploadToS3 = async (file: File, onProgress: (percent: number) => void): Promise<string> => {
   const params = {
     Bucket: 'thegroveryfiles', // replace with your bucket name
     Key: `${Date.now()}-${file.name}`, // Generate a unique name for the file
@@ -15,6 +14,14 @@ export const uploadToS3 = async (file: File): Promise<string> => {
     ContentType: file.type,
   };
 
-  const { Location } = await s3.upload(params).promise();
+  const upload = s3.upload(params);
+
+  // Track upload progress
+  upload.on('httpUploadProgress', (event) => {
+    const percentCompleted = Math.round((event.loaded / event.total) * 100);
+    onProgress(percentCompleted);
+  });
+
+  const { Location } = await upload.promise();
   return Location; // Return the URL of the uploaded file
 };
