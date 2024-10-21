@@ -23,19 +23,19 @@ const ThemeToggle = () => {
   };
 
   return (
-    <div className="flex items-center">
+    <div className="flex bg-slate-50 dark:bg-slate-700 py-2 px-4 rounded-full shadow-lg items-center">
       <span className="mr-2 text-sm font-medium text-gray-900 dark:text-gray-300">
         {darkMode ? <FiMoon className="h-5 w-5" /> : <FiSun className="h-5 w-5" />}
       </span>
       <button
         onClick={toggleTheme}
         type="button"
-        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${darkMode ? 'bg-slate-600' : 'bg-slate-400'}`}
+        className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${darkMode ? 'bg-slate-800' : 'bg-slate-400'}`}
         role="switch"
         aria-checked={darkMode}
       >
         <span
-          className={`transform transition ease-in-out duration-200 inline-block w-4 h-4 bg-slate-100 dark:bg-slate-300 rounded-full ${darkMode ? 'translate-x-6' : 'translate-x-1'}`}
+          className={`transform transition ease-in-out duration-200 inline-block w-4 h-4 bg-slate-300 dark:bg-slate-300 rounded-full ${darkMode ? 'translate-x-6' : 'translate-x-1'}`}
         />
       </button>
     </div>

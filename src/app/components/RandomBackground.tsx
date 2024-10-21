@@ -12,19 +12,20 @@ const RandomBackground: React.FC<React.PropsWithChildren<object>> = ({ children 
   }, []);
 
   return (
-    <>
-      <div className='absolute w-full h-full opacity-50 bg-slate-300 dark:bg-slate-900'></div>
-      <div
-        className="flex items-center bg-opacity-25 justify-center w-full h-screen"
-        style={{
-          backgroundImage: `url(${backgroundUrl})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
+    <div
+      className="relative flex items-center justify-center w-full h-screen"
+      style={{
+        backgroundImage: `url(${backgroundUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Apply an overlay effect without using absolute positioning */}
+      <div className='absolute top-0 left-0 w-full h-full bg-slate-300 opacity-50 dark:bg-slate-900'></div>
+      <div className='relative z-10 w-full h-full flex items-center justify-center'>
         {children}
       </div>
-    </>
+    </div>
   );
 };
 
