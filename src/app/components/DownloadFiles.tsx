@@ -1,8 +1,11 @@
+"use client"; // Ensure it's a client-side component
+
 import React, { useEffect, useState, useCallback } from 'react';
-import { FiDownload } from 'react-icons/fi';
+import { FiDownload, FiCopy, FiX } from 'react-icons/fi';
 import generatePresignedUrl from '../lib/generatePresignedUrl';
 import GoogleSignIn from './GoogleSignIn';
 import { getFileIcon } from '@/app/utils/getFileIcon'; // Adjust the path according to your project structure
+import { toast } from 'react-hot-toast';
 
 const bucketName = 'thegroveryfiles'; // Your S3 bucket name
 
@@ -51,6 +54,67 @@ const DownloadFiles: React.FC = () => {
     }
   };
 
+  const handleCopyLink = async (fileName: string) => {
+    const link = generatePresignedUrl(bucketName, fileName);
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success('Link copied to clipboard!');
+    } catch (error) {
+        console.error('Error copying link:', error);
+        toast.error('Failed to copy link.');
+      }
+      
+  };
+  
+
+  const handleDeleteFile = async (fileName: string) => {
+    const confirmed = await new Promise<boolean>((resolve) => {
+      toast((t) => (
+        <span>
+          Are you sure you want to delete <b>{fileName}</b>?
+          <div className="mt-2">
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                resolve(true);
+              }}
+              className="bg-red-500 text-white px-2 py-1 rounded mr-2"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                resolve(false);
+              }}
+              className="bg-gray-500 text-white px-2 py-1 rounded"
+            >
+              Cancel
+            </button>
+          </div>
+        </span>
+      ));
+    });
+
+    if (confirmed) {
+      try {
+        const response = await fetch(`/api/delete-file?fileName=${encodeURIComponent(fileName)}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete file');
+        }
+
+        setFiles((prevFiles) => prevFiles.filter((file) => file !== fileName));
+        toast.success('File deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting file:', error);
+        toast.error('Error deleting file.');
+      }
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-slate-700 p-6 rounded-lg shadow-lg text-center w-full mt-4">
       <h1 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100">Download Available Files</h1>
@@ -82,16 +146,30 @@ const DownloadFiles: React.FC = () => {
                     {fileName}
                   </div>
 
-                  {/* Right-aligned download icon */}
-                  <a
-                    href={generatePresignedUrl(bucketName, fileName)} // Use generatePresignedUrl to get the download link
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
-                  >
-                    <FiDownload className="w-5 h-5" />
-                  </a>
+                  {/* Right-aligned actions (download, copy, delete) */}
+                  <div className="flex items-center space-x-2">
+                    <a
+                      href={generatePresignedUrl(bucketName, fileName)} // Use generatePresignedUrl to get the download link
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
+                    >
+                      <FiDownload className="w-5 h-5" />
+                    </a>
+                    <button
+                      onClick={() => handleCopyLink(fileName)}
+                      className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
+                    >
+                      <FiCopy className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteFile(fileName)}
+                      className="text-red-500 hover:text-red-600"
+                    >
+                      <FiX className="w-5 h-5" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
