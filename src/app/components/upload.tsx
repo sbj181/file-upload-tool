@@ -1,11 +1,14 @@
 "use client"; // This makes the component a Client Component
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { FiShare2, FiDownload, FiX } from 'react-icons/fi'; 
 import { uploadToS3 } from '@/app/lib/s3';
 import { toast } from 'react-hot-toast'; // Import toast
 import { getFileIcon } from '@/app/utils/getFileIcon'; // Adjust the path according to your project structure
+
+
 
 const Upload: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -59,6 +62,25 @@ const Upload: React.FC = () => {
   return (
     <div className="relative">
       <div className="bg-white dark:bg-slate-700 p-6 rounded-lg shadow-lg text-center w-full">
+        
+        <div className='w-full justify-center flex items-center'>
+        {/* Logo rendering based on theme */}
+        <Image 
+        src="imgs/grovery-logo-update-color.svg"
+        alt="Grovery Logo Light" 
+        width={200}  // Set appropriate width
+        height={100}  // Set appropriate height
+        className="mb-4 block dark:hidden" 
+        />
+        <Image 
+        src="imgs/grovery-logo-update-white.svg"
+        alt="Grovery Logo Dark" 
+        width={200}  // Set appropriate width
+        height={100}  // Set appropriate height
+        className="mb-4 hidden dark:block" 
+        />
+        </div>
+
         <h1 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100">Upload Your Files</h1>
         <div
           {...getRootProps()}
