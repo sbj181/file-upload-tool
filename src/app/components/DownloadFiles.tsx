@@ -1,7 +1,7 @@
 // src/app/components/DownloadFiles.tsx
 
 import React, { useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { FiDownload, FiCopy, FiX, FiTrash, FiTrash2 } from 'react-icons/fi';
+import { FiDownload, FiCopy, FiTrash2 } from 'react-icons/fi';
 import generatePresignedUrl from '../lib/generatePresignedUrl';
 import GoogleSignIn from './GoogleSignIn';
 import { getFileIcon } from '@/app/utils/getFileIcon'; // Adjust the path according to your project structure
