@@ -10,7 +10,8 @@ const s3 = new AWS.S3({
 export const uploadToS3 = async (file: File, onProgress: (percent: number) => void): Promise<string> => {
   const params = {
     Bucket: 'thegroveryfiles', // Replace with your bucket name
-    Key: `${Date.now()}-${file.name}`, // Generate a unique name for the file
+    // Key: `${Date.now()}-${file.name}`, // timestamp + filename
+    Key: file.name, // Use the original file name
     Body: file,
     ContentType: file.type,
   };

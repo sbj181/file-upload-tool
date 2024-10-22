@@ -3,16 +3,14 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
-import { FiShare2, FiDownload, FiX } from 'react-icons/fi'; 
+import { FiShare2, FiDownload, FiX, FiCheckCircle } from 'react-icons/fi'; 
 import { uploadToS3 } from '@/app/lib/s3';
 import { toast } from 'react-hot-toast'; // Import toast
 import { getFileIcon } from '@/app/utils/getFileIcon'; // Adjust the path according to your project structure
 
-
-
 const Upload: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
-  const [progress, setProgress] = useState<number[]>([]); // To track upload progress of each file
+  const [progress, setProgress] = useState<(number | 'complete')[]>([]); // Track upload progress or completion status for each file
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [s3Urls] = useState<string[]>([]);
 
@@ -35,50 +33,69 @@ const Upload: React.FC = () => {
   // Handle file upload
   const handleUpload = async () => {
     if (files.length === 0) {
-      toast.error('No files selected');
+      toast.error('No files selected', { position: 'top-center', duration: 5000 });
       return;
     }
   
     try {
-      const progressArr: number[] = Array(files.length).fill(0);
-      
+      const progressArr: (number | 'complete')[] = Array(files.length).fill(0);
+  
       for (let i = 0; i < files.length; i++) {
         await uploadToS3(files[i], (percentCompleted) => {
           progressArr[i] = percentCompleted;
           setProgress([...progressArr]); // Update progress for each file
         });
+
+        // Update progress to 'complete' when a file is uploaded
+        progressArr[i] = 'complete';
+        setProgress([...progressArr]);
+
+        // Send email notification after each successful upload
+        try {
+          await fetch('/api/send-upload-notification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fileName: files[i].name,
+              recipientEmail: 'scottj@thegrovery.com', // Replace with actual recipient email
+            }),
+          });
+        } catch (notificationError) {
+          console.error('Error sending email notification:', notificationError);
+        }
       }
-      
+  
       setIsSuccess(true);
-      toast.success('Upload successful!');
+      toast.success('Upload successful!', { position: 'top-center', duration: 8000 });
     } catch (error) {
-      console.error(error);
+      console.error('Error during file upload:', error);
       setIsSuccess(false);
       setProgress(Array(files.length).fill(0));
-      toast.error('Error uploading files');
+      toast.error('Error uploading files', { position: 'top-center', duration: 5000 });
     }
   };
 
   return (
     <div className="relative">
       <div className="bg-white dark:bg-slate-700 p-6 rounded-lg shadow-lg text-center w-full">
-        
         <div className='w-full justify-center flex items-center'>
-        {/* Logo rendering based on theme */}
-        <Image 
-        src="imgs/grovery-logo-update-color.svg"
-        alt="Grovery Logo Light" 
-        width={200}  // Set appropriate width
-        height={100}  // Set appropriate height
-        className="mb-4 block dark:hidden" 
-        />
-        <Image 
-        src="imgs/grovery-logo-update-white.svg"
-        alt="Grovery Logo Dark" 
-        width={200}  // Set appropriate width
-        height={100}  // Set appropriate height
-        className="mb-4 hidden dark:block" 
-        />
+          {/* Logo rendering based on theme */}
+          <Image 
+            src="imgs/grovery-logo-update-color.svg"
+            alt="Grovery Logo Light" 
+            width={200}  // Set appropriate width
+            height={100}  // Set appropriate height
+            className="mb-4 block dark:hidden" 
+          />
+          <Image 
+            src="imgs/grovery-logo-update-white.svg"
+            alt="Grovery Logo Dark" 
+            width={200}  // Set appropriate width
+            height={100}  // Set appropriate height
+            className="mb-4 hidden dark:block" 
+          />
         </div>
 
         <h1 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100">Upload Your Files</h1>
@@ -103,9 +120,9 @@ const Upload: React.FC = () => {
                   {/* File icon and name */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                        <div className="min-w-[24px]">
-                            {getFileIcon(file.name)}
-                        </div>
+                      <div className="min-w-[24px]">
+                        {getFileIcon(file.name)}
+                      </div>
                       <span className="ml-2 text-left">{file.name}</span>
                     </div>
 
@@ -115,13 +132,19 @@ const Upload: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* Show progress bar */}
-                  {progress[index] > 0 && (
+                  {/* Show progress bar or complete message */}
+                  {progress[index] !== 'complete' && progress[index] > 0 && (
                     <div className="w-full bg-gray-200 rounded-full h-4 mt-2">
                       <div
                         className="bg-blue-600 h-4 rounded-full transition-all duration-300"
                         style={{ width: `${progress[index]}%` }}
                       ></div>
+                    </div>
+                  )}
+                  {progress[index] === 'complete' && (
+                    <div className="flex items-center justify-center text-green-600 mt-2">
+                      <FiCheckCircle className="w-5 h-5 mr-2" />
+                      <span>Upload complete</span>
                     </div>
                   )}
                 </li>

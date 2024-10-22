@@ -65,7 +65,7 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ onSignIn }) => {
     loadGoogleScript();
   }, [onSignIn]);
 
-  return <div className='mt-2' id="signInDiv"></div>; // This is where the Google Sign-In button will appear
+  return <div className='mt-2 flex w-full justify-center' id="signInDiv"></div>; // This is where the Google Sign-In button will appear
 };
 
 export default GoogleSignIn;
