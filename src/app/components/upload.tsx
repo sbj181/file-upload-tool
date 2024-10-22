@@ -3,22 +3,22 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
-import { FiShare2, FiDownload, FiX, FiCheckCircle } from 'react-icons/fi'; 
+import { FiX, FiCheckCircle } from 'react-icons/fi'; 
 import { uploadToS3 } from '@/app/lib/s3';
 import { toast } from 'react-hot-toast'; // Import toast
 import { getFileIcon } from '@/app/utils/getFileIcon'; // Adjust the path according to your project structure
 
-const Upload: React.FC = () => {
+const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState<(number | 'complete')[]>([]); // Track upload progress or completion status for each file
-  const [isSuccess, setIsSuccess] = useState<boolean>(false);
-  const [s3Urls] = useState<string[]>([]);
+  const [loading, setLoading] = useState<boolean>(false); // Track the upload state
+  const [disableUpload, setDisableUpload] = useState<boolean>(false); // Disable upload button after upload
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop: (acceptedFiles: File[]) => {
       setFiles((prevFiles) => [...prevFiles, ...acceptedFiles]); // Append files
-      setIsSuccess(false);
       setProgress((prevProgress) => [...prevProgress, ...Array(acceptedFiles.length).fill(0)]); // Add progress trackers for new files
+      setDisableUpload(false); // Enable upload button if new files are added
     },
     multiple: true, // Allow multiple files
   });
@@ -36,10 +36,12 @@ const Upload: React.FC = () => {
       toast.error('No files selected', { position: 'top-center', duration: 5000 });
       return;
     }
-  
+
+    setLoading(true); // Set loading to true
+
     try {
       const progressArr: (number | 'complete')[] = Array(files.length).fill(0);
-  
+
       for (let i = 0; i < files.length; i++) {
         await uploadToS3(files[i], (percentCompleted) => {
           progressArr[i] = percentCompleted;
@@ -66,14 +68,18 @@ const Upload: React.FC = () => {
           console.error('Error sending email notification:', notificationError);
         }
       }
-  
-      setIsSuccess(true);
+
       toast.success('Upload successful!', { position: 'top-center', duration: 8000 });
+      refreshFiles(); // Refresh the download list after successful upload
+
+      // Disable upload button since the files are already uploaded
+      setDisableUpload(true);
     } catch (error) {
       console.error('Error during file upload:', error);
-      setIsSuccess(false);
       setProgress(Array(files.length).fill(0));
       toast.error('Error uploading files', { position: 'top-center', duration: 5000 });
+    } finally {
+      setLoading(false); // Set loading to false
     }
   };
 
@@ -155,55 +161,11 @@ const Upload: React.FC = () => {
 
         <button
           onClick={handleUpload}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 dark:bg-blue-700"
+          className={`bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 dark:bg-blue-700 ${loading || disableUpload ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={loading || disableUpload || files.length === 0}
         >
-          Upload
+          {loading ? 'Uploading...' : 'Upload'}
         </button>
-
-        {/* Display S3 links with Copy, Download, and Delete actions */}
-        {isSuccess &&
-          s3Urls.map((url, index) => (
-            <div className="mt-4 text-left" key={index}>
-              <div className="mb-2">
-                <h2 className="font-bold text-xl">Uploaded Files</h2>
-              </div>
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 dark:text-blue-400 underline"
-              >
-                {files[index]?.name} {/* Display filename */}
-              </a>
-              <div className="flex mt-2 space-x-2">
-                <button
-                  onClick={() => navigator.clipboard.writeText(url)}
-                  className="flex items-center space-x-1 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
-                >
-                  <FiShare2 className="w-5 h-5" />
-                  <span>Copy Link</span>
-                </button>
-
-                <a
-                  href={url}
-                  download
-                  className="flex items-center space-x-1 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
-                >
-                  <FiDownload className="w-5 h-5" />
-                  <span>Download</span>
-                </a>
-
-                {/* Delete option after file upload */}
-                <button
-                  onClick={() => console.log('Deleting file from S3', url)}
-                  className="flex items-center space-x-1 text-red-500 hover:text-red-600"
-                >
-                  <FiX className="w-5 h-5" />
-                  <span>Delete</span>
-                </button>
-              </div>
-            </div>
-          ))}
       </div>
     </div>
   );

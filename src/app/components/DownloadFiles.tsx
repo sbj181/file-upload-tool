@@ -1,7 +1,7 @@
-"use client"; // Ensure it's a client-side component
+// src/app/components/DownloadFiles.tsx
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { FiDownload, FiCopy, FiX } from 'react-icons/fi';
+import React, { useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { FiDownload, FiCopy, FiX, FiTrash, FiTrash2 } from 'react-icons/fi';
 import generatePresignedUrl from '../lib/generatePresignedUrl';
 import GoogleSignIn from './GoogleSignIn';
 import { getFileIcon } from '@/app/utils/getFileIcon'; // Adjust the path according to your project structure
@@ -9,12 +9,11 @@ import { toast } from 'react-hot-toast';
 
 const bucketName = 'thegroveryfiles'; // Your S3 bucket name
 
-const DownloadFiles: React.FC = () => {
+const DownloadFiles = forwardRef((props, ref) => {
   const [userSignedIn, setUserSignedIn] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Wrap fetchFiles in useCallback to prevent unnecessary re-creations
   const fetchFiles = useCallback(async () => {
     setLoading(true);
     try {
@@ -33,9 +32,13 @@ const DownloadFiles: React.FC = () => {
     }
   }, [userSignedIn, fetchFiles]);
 
+  // Using useImperativeHandle to expose `fetchFiles` to parent
+  useImperativeHandle(ref, () => ({
+    fetchFiles,
+  }));
+
   const handleSignIn = (token: string) => {
     console.log('Google ID Token:', token);
-    // Set the user as signed in
     setUserSignedIn(true);
   };
 
@@ -47,7 +50,7 @@ const DownloadFiles: React.FC = () => {
       }
 
       const data = await response.json();
-      return data.files; // Assuming the API returns { files: string[] }
+      return data.files;
     } catch (error) {
       console.error('Error fetching files from API:', error);
       return [];
@@ -60,12 +63,10 @@ const DownloadFiles: React.FC = () => {
       await navigator.clipboard.writeText(link);
       toast.success('Link copied to clipboard!');
     } catch (error) {
-        console.error('Error copying link:', error);
-        toast.error('Failed to copy link.');
-      }
-      
+      console.error('Error copying link:', error);
+      toast.error('Failed to copy link.');
+    }
   };
-  
 
   const handleDeleteFile = async (fileName: string) => {
     const confirmed = await new Promise<boolean>((resolve) => {
@@ -135,15 +136,10 @@ const DownloadFiles: React.FC = () => {
                       {getFileIcon(fileName)}
                     </div>
                     <span
-                      className="text-sm text-left text-slate-800 dark:text-slate-300 truncate max-w-full overflow-ellipsis"
+                      className="text-sm text-left text-slate-800 dark:text-slate-300 max-w-full overflow-ellipsis"
                     >
                       {fileName}
                     </span>
-                  </div>
-
-                  {/* Tooltip */}
-                  <div className="absolute left-0 z-10 top-full mt-2 hidden group-hover:block w-max bg-gray-800 text-white text-xs rounded-md px-2 py-1">
-                    {fileName}
                   </div>
 
                   {/* Right-aligned actions (download, copy, delete) */}
@@ -167,7 +163,7 @@ const DownloadFiles: React.FC = () => {
                       onClick={() => handleDeleteFile(fileName)}
                       className="text-red-500 hover:text-red-600"
                     >
-                      <FiX className="w-5 h-5" />
+                      <FiTrash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </li>
@@ -185,6 +181,8 @@ const DownloadFiles: React.FC = () => {
       )}
     </div>
   );
-};
+});
+
+DownloadFiles.displayName = 'DownloadFiles';
 
 export default DownloadFiles;
