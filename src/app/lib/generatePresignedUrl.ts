@@ -10,7 +10,7 @@ const generatePresignedUrl = (bucketName: string, fileName: string): string => {
   const params = {
     Bucket: bucketName,
     Key: fileName,
-    Expires: 60 * 5, // The URL is valid for 5 minutes
+    Expires: 60 * 60 * 24 * 7, // The URL is valid for 7 days
   };
   return s3.getSignedUrl("getObject", params);
 };
