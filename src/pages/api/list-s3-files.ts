@@ -14,7 +14,7 @@ const s3 = new AWS.S3({
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const params = {
-      Bucket: 'groveryuploads', // Replace with your bucket name
+      Bucket: 'groveryuploads',
     };
     const data = await s3.listObjectsV2(params).promise();
 
@@ -22,7 +22,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ message: 'No files found' });
     }
 
-    const filesList = data.Contents.map((item) => item.Key);
+    const filesList = data.Contents.map((item) => ({
+      Key: item.Key,
+      LastModified: item.LastModified
+    }));
+    
     res.status(200).json({ files: filesList });
   } catch (error) {
     console.error('Error listing files from S3:', error);
