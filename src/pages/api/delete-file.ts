@@ -3,9 +3,15 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import AWS from 'aws-sdk';
 
-AWS.config.update({ region: 'us-east-1' }); // Set your AWS region
-
-const s3 = new AWS.S3();
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION,
+  signatureVersion: 'v4',
+  s3DisableBodySigning: false,
+  useAccelerateEndpoint: false,
+  s3ForcePathStyle: false
+});
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'DELETE') {
@@ -20,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const params = {
-    Bucket: 'thegroveryfiles', // Your S3 bucket name
+    Bucket: 'groveryuploads', // Your S3 bucket name
     Key: decodeURIComponent(fileName), // Decode the file name before using it
   };
 

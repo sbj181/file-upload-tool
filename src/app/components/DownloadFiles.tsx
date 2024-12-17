@@ -7,7 +7,7 @@ import GoogleSignIn from './GoogleSignIn';
 import { getFileIcon } from '@/app/utils/getFileIcon'; // Adjust the path according to your project structure
 import { toast } from 'react-hot-toast';
 
-const bucketName = 'thegroveryfiles'; // Your S3 bucket name
+const bucketName = 'groveryuploads'; // Your S3 bucket name
 
 const DownloadFiles = forwardRef((props, ref) => {
   const [userSignedIn, setUserSignedIn] = useState(false);

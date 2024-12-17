@@ -5,7 +5,7 @@ import generatePresignedUrl from '@/app/lib/generatePresignedUrl'; // Adjust the
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
-const bucketName = 'thegroveryfiles'; // Your S3 bucket name
+const bucketName = 'groveryuploads'; // Your S3 bucket name
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {

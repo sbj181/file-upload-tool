@@ -4,13 +4,17 @@ import AWS from 'aws-sdk';
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION, // replace with your AWS region
+  region: process.env.AWS_REGION,
+  signatureVersion: 'v4',
+  s3DisableBodySigning: false,
+  useAccelerateEndpoint: false,
+  s3ForcePathStyle: false
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const params = {
-      Bucket: 'thegroveryfiles', // Replace with your bucket name
+      Bucket: 'groveryuploads', // Replace with your bucket name
     };
     const data = await s3.listObjectsV2(params).promise();
 
