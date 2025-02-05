@@ -63,7 +63,7 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
             },
             body: JSON.stringify({
               fileName: files[i].name,
-              recipientEmail: 'scottj@thegrovery.com', // Replace with actual recipient email
+              recipientEmail: 'hello@thegrovery.com', // Replace with actual recipient email
             }),
           });
         } catch (notificationError) {
