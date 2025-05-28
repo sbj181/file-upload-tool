@@ -1,9 +1,9 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import Head from "next/head";
 import { Kumbh_Sans } from "next/font/google"; // Import Kumbh Sans from Google Fonts
 import "./globals.css"; // Tailwind is imported here, so it's globally available
 import { Toaster } from "react-hot-toast"; // Import Toaster from react-hot-toast
+// import Head from "next/head"; // Remove unused import
 
 // Load Kumbh Sans Google Font
 const kumbhSans = Kumbh_Sans({
@@ -24,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <Head>
+      <head>
         {/* Using a .ico or .png file */}
         <link rel="icon" href="/favicon.ico" />
 
@@ -33,7 +33,7 @@ export default function RootLayout({
           rel="icon"
           href={`data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>🚀</text></svg>`}
         />
-      </Head>
+      </head>
       <body
         className={`${kumbhSans.variable} antialiased`} // Use Kumbh Sans variable here
       >

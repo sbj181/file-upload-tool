@@ -1,6 +1,6 @@
 "use client"; // This makes the component a Client Component
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { FiX, FiCheckCircle } from 'react-icons/fi'; 
@@ -15,6 +15,11 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
   const [loading, setLoading] = useState<boolean>(false); // Track the upload state
   const [disableUpload, setDisableUpload] = useState<boolean>(false); // Disable upload button after upload
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop: (acceptedFiles: File[]) => {
@@ -107,13 +112,14 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
 
       <h2 className="text-xl font-bold mb-4 dark:text-white text-center">Upload Files</h2>
       
-      {!isAuthenticated && (
+      {/* Only render auth/upload UI after client-side mount */}
+      {isClient && !isAuthenticated && (
         <div className="mb-5">
           <UploadAuth onAuthenticated={() => setIsAuthenticated(true)} />
         </div>
       )}
 
-      {isAuthenticated && (
+      {isClient && isAuthenticated && (
         <>
           <div
             {...getRootProps()}

@@ -76,8 +76,8 @@ const DownloadFiles = forwardRef((props, ref) => {
   };
 
   const handleCopyLink = async (fileName: string) => {
-    const link = generatePresignedUrl(bucketName, fileName);
     try {
+      const link = await generatePresignedUrl(bucketName, fileName);
       await navigator.clipboard.writeText(link);
       toast.success('Link copied to clipboard!');
     } catch (error) {
@@ -204,16 +204,17 @@ const DownloadFiles = forwardRef((props, ref) => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-2">
-                      <a
-                        href={generatePresignedUrl(bucketName, file.name)} // Use generatePresignedUrl to get the download link
-                        download
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <div className="flex items-center space-x-2 bg-white p-2 rounded-md">
+                      <button
+                        onClick={async () => {
+                          const link = await generatePresignedUrl(bucketName, file.name);
+                          window.open(link, '_blank');
+                        }}
                         className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
+                        aria-label="Download file"
                       >
                         <FiDownload className="w-5 h-5" />
-                      </a>
+                      </button>
                       <button
                         onClick={() => handleCopyLink(file.name)}
                         className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"

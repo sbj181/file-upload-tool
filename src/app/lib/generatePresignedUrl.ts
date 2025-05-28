@@ -10,13 +10,32 @@ const s3 = new AWS.S3({
   s3ForcePathStyle: false
 });
 
-const generatePresignedUrl = (bucketName: string, fileName: string): string => {
-  const params = {
-    Bucket: bucketName,
-    Key: fileName,
-    Expires: 60 * 60 * 24 * 7, // The URL is valid for 7 days
-  };
-  return s3.getSignedUrl("getObject", params);
+const generatePresignedUrl = async (bucketName: string, fileName: string): Promise<string> => {
+  try {
+    const response = await fetch('/api/generate-short-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ fileName }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate short URL');
+    }
+
+    const data = await response.json();
+    return data.shortUrl;
+  } catch (error) {
+    console.error('Error generating short URL:', error);
+    // Fallback to direct presigned URL if short URL generation fails
+    const params = {
+      Bucket: bucketName,
+      Key: fileName,
+      Expires: 60 * 60 * 24 * 7, // 7 days
+    };
+    return s3.getSignedUrl("getObject", params);
+  }
 };
 
 export default generatePresignedUrl;
