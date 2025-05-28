@@ -37,7 +37,7 @@ export default function RootLayout({
       <body
         className={`${kumbhSans.variable} antialiased`} // Use Kumbh Sans variable here
       >
-        <Toaster position="top-right" reverseOrder={false} /> {/* Add Toaster here */}
+        <Toaster position="top-center" reverseOrder={false} /> {/* Add Toaster here */}
         {children}
       </body>
     </html>

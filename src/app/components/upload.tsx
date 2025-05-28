@@ -44,18 +44,28 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
       return;
     }
 
-    setLoading(true); // Set loading to true
+    setLoading(true);
 
     try {
       const progressArr: (number | 'complete')[] = Array(files.length).fill(0);
+      let anyUploaded = false; // Track if any file was uploaded
 
       for (let i = 0; i < files.length; i++) {
-        await uploadToS3(files[i], (percentCompleted) => {
-          progressArr[i] = percentCompleted;
-          setProgress([...progressArr]); // Update progress for each file
-        });
+        try {
+          await uploadToS3(files[i], (percentCompleted) => {
+            progressArr[i] = percentCompleted;
+            setProgress([...progressArr]);
+          });
+          anyUploaded = true; // Mark as uploaded if no error
+        } catch (uploadError: any) {
+          if (uploadError.message === 'File type not allowed') {
+            toast.error(`File type not allowed: ${files[i].name}`, { position: 'top-center', duration: 5000 });
+            continue;
+          } else {
+            throw uploadError;
+          }
+        }
 
-        // Update progress to 'complete' when a file is uploaded
         progressArr[i] = 'complete';
         setProgress([...progressArr]);
 
@@ -76,17 +86,17 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
         }
       }
 
-      toast.success('Upload successful!', { position: 'top-center', duration: 8000 });
-      refreshFiles(); // Refresh the download list after successful upload
-
-      // Disable upload button since the files are already uploaded
-      setDisableUpload(true);
+      if (anyUploaded) {
+        toast.success('Upload successful!', { position: 'top-center', duration: 8000 });
+        refreshFiles();
+        setDisableUpload(true);
+      }
     } catch (error) {
       console.error('Error during file upload:', error);
       setProgress(Array(files.length).fill(0));
       toast.error('Error uploading files', { position: 'top-center', duration: 5000 });
     } finally {
-      setLoading(false); // Set loading to false
+      setLoading(false);
     }
   };
 
