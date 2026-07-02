@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { FiX, FiCheckCircle } from 'react-icons/fi'; 
-import { uploadToS3 } from '@/app/lib/s3';
+import { uploadFile } from '@/app/lib/storage';
 import { toast } from 'react-hot-toast'; // Import toast
 import { getFileIcon } from '@/app/utils/getFileIcon'; // Adjust the path according to your project structure
 import UploadAuth from './UploadAuth';
@@ -15,6 +15,7 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
   const [loading, setLoading] = useState<boolean>(false); // Track the upload state
   const [disableUpload, setDisableUpload] = useState<boolean>(false); // Disable upload button after upload
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -52,7 +53,7 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
 
       for (let i = 0; i < files.length; i++) {
         try {
-          await uploadToS3(files[i], (percentCompleted) => {
+          await uploadFile(files[i], password, (percentCompleted) => {
             progressArr[i] = percentCompleted;
             setProgress([...progressArr]);
           });
@@ -71,14 +72,13 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
 
         // Send email notification after each successful upload
         try {
-          await fetch('/api/send-upload-notification', {
+          await fetch('/api/notify-upload', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
               fileName: files[i].name,
-              recipientEmail: 'hello@thegrovery.com', // Replace with actual recipient email
             }),
           });
         } catch (notificationError) {
@@ -125,7 +125,7 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
       {/* Only render auth/upload UI after client-side mount */}
       {isClient && !isAuthenticated && (
         <div className="mb-5">
-          <UploadAuth onAuthenticated={() => setIsAuthenticated(true)} />
+          <UploadAuth onAuthenticated={(pw) => { setPassword(pw); setIsAuthenticated(true); }} />
         </div>
       )}
 

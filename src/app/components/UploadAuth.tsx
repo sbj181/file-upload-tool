@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 
 interface UploadAuthProps {
-  onAuthenticated: () => void;
+  onAuthenticated: (password: string) => void;
 }
 
 const MAX_ATTEMPTS = 5;
@@ -34,7 +34,7 @@ const UploadAuth: React.FC<UploadAuthProps> = ({ onAuthenticated }) => {
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Check if currently locked out
@@ -44,11 +44,15 @@ const UploadAuth: React.FC<UploadAuthProps> = ({ onAuthenticated }) => {
       return;
     }
 
-    // Get the array of allowed passwords from env
-    const allowedPasswords = process.env.NEXT_PUBLIC_UPLOAD_PASSWORDS?.split(',') || [];
-    
-    if (allowedPasswords.includes(password)) {
-      onAuthenticated();
+    // Verify the password against the server (source of truth for UPLOAD_PASSWORD).
+    const res = await fetch('/api/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, fileName: '__probe__' }),
+    });
+
+    if (res.ok) {
+      onAuthenticated(password);
       setError('');
       // Reset attempts on successful login
       setAttempts(0);
