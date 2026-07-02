@@ -13,23 +13,36 @@ export default function ShortUrlRedirect(props: any) {
 
   const [error, setError] = useState<string | null>(null);
 
+  const resolveLink = async (): Promise<string | null> => {
+    if (!params) return null;
+    try {
+      const response = await fetch(`/api/resolve-link?id=${params.id}`);
+      if (!response.ok) {
+        throw new Error('Invalid or expired link');
+      }
+      const data = await response.json();
+      return data.url as string;
+    } catch {
+      setError('This link is invalid or has expired');
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!params) return;
-    const fetchPresignedUrl = async () => {
-      try {
-        const response = await fetch(`/api/get-presigned-url?id=${params.id}`);
-        if (!response.ok) {
-          throw new Error('Invalid or expired link');
-        }
-        const data = await response.json();
-        window.location.href = data.presignedUrl;
-      } catch {
-        setError('This link is invalid or has expired');
-      }
+    const fetchSignedUrl = async () => {
+      const url = await resolveLink();
+      if (url) window.location.href = url;
     };
 
-    fetchPresignedUrl();
+    fetchSignedUrl();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params?.id]);
+
+  const handleManualDownload = async () => {
+    const url = await resolveLink();
+    if (url) window.location.href = url;
+  };
 
   if (error) {
     return (
@@ -69,15 +82,13 @@ export default function ShortUrlRedirect(props: any) {
             Close Tab
         </button>
         <div>
-            <a
-            href={`/api/redirect-to-file?id=${params?.id}`}
-            target="_self"
-            rel="noopener noreferrer"
+            <button
+            onClick={handleManualDownload}
             className="mt-4 ml-4 inline-block px-4 py-2 text-teal-500 dark:text-teal-400 hover:text-teal-600 dark:hover:text-teal-300 transition"
             >
             Click here if your download does not start automatically
-            </a>
-        </div> 
+            </button>
+        </div>
       </div>
     </div>
   );
