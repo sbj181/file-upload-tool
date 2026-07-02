@@ -315,6 +315,20 @@ function timingSafeEqual(a: string, b: string): boolean {
   return crypto.timingSafeEqual(ba, bb);
 }
 
+// UPLOAD_PASSWORD may be a comma-separated list; any exact match passes.
+// Each candidate is compared in constant time; empty entries are ignored.
+function passwordMatches(input: string): boolean {
+  const candidates = (process.env.UPLOAD_PASSWORD || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  let ok = false;
+  for (const c of candidates) {
+    if (timingSafeEqual(input, c)) ok = true;
+  }
+  return ok;
+}
+
 function sanitize(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200) || 'file';
 }
@@ -322,8 +336,7 @@ function sanitize(name: string): string {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const { password, fileName } = req.body || {};
-  const expected = process.env.UPLOAD_PASSWORD || '';
-  if (!expected || typeof password !== 'string' || !timingSafeEqual(password, expected)) {
+  if (typeof password !== 'string' || !passwordMatches(password)) {
     return res.status(401).json({ error: 'Invalid upload password' });
   }
   if (typeof fileName !== 'string' || !fileName) {
