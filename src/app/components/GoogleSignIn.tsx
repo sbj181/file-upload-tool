@@ -58,8 +58,14 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ onSignIn }) => {
       }
     };
 
-    const handleCredentialResponse = (response: { credential: string }) => {
-      onSignIn(response.credential); // Pass the token back to the parent component
+    const handleCredentialResponse = async (response: { credential: string }) => {
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+      if (res.ok) onSignIn(response.credential);
+      else alert('Only @thegrovery.com accounts can view files.');
     };
 
     loadGoogleScript();

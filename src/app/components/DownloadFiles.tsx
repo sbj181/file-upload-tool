@@ -2,24 +2,23 @@
 
 import React, { useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { FiDownload, FiCopy, FiTrash2, FiArrowUp, FiArrowDown } from 'react-icons/fi';
-import generatePresignedUrl from '../lib/generatePresignedUrl';
 import GoogleSignIn from './GoogleSignIn';
 import { getFileIcon } from '@/app/utils/getFileIcon'; // Adjust the path according to your project structure
 import { toast } from 'react-hot-toast';
 
-const bucketName = 'groveryuploads'; // Your S3 bucket name
-
 interface FileInfo {
   name: string;
+  path: string;
   lastModified: Date;
 }
 
 type SortField = 'name' | 'date';
 type SortDirection = 'asc' | 'desc';
 
-interface S3FileObject {
-  Key: string;
-  LastModified: Date;
+interface RemoteFileObject {
+  name: string;
+  path: string;
+  lastModified: string | null;
 }
 
 const DownloadFiles = forwardRef((props, ref) => {
@@ -32,7 +31,7 @@ const DownloadFiles = forwardRef((props, ref) => {
   const fetchFiles = useCallback(async () => {
     setLoading(true);
     try {
-      const filesList = await listFilesInS3();
+      const filesList = await listFiles();
       setFiles(filesList);
     } catch (error) {
       console.error('Error fetching files:', error);
@@ -47,6 +46,19 @@ const DownloadFiles = forwardRef((props, ref) => {
     }
   }, [userSignedIn, fetchFiles]);
 
+  // Check for an existing session on mount so a reload keeps the user signed in.
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) setUserSignedIn(true);
+      } catch (error) {
+        console.error('Error checking session:', error);
+      }
+    };
+    checkSession();
+  }, []);
+
   // Using useImperativeHandle to expose `fetchFiles` to parent
   useImperativeHandle(ref, () => ({
     fetchFiles,
@@ -57,17 +69,18 @@ const DownloadFiles = forwardRef((props, ref) => {
     setUserSignedIn(true);
   };
 
-  const listFilesInS3 = async (): Promise<FileInfo[]> => {
+  const listFiles = async (): Promise<FileInfo[]> => {
     try {
-      const response = await fetch('/api/list-s3-files');
+      const response = await fetch('/api/list-files');
       if (!response.ok) {
         throw new Error('Failed to fetch files');
       }
 
       const data = await response.json();
-      return data.files.map((file: S3FileObject) => ({
-        name: file.Key,
-        lastModified: new Date(file.LastModified)
+      return data.files.map((file: RemoteFileObject) => ({
+        name: file.name,
+        path: file.path,
+        lastModified: file.lastModified ? new Date(file.lastModified) : new Date(0),
       }));
     } catch (error) {
       console.error('Error fetching files from API:', error);
@@ -75,9 +88,22 @@ const DownloadFiles = forwardRef((props, ref) => {
     }
   };
 
-  const handleCopyLink = async (fileName: string) => {
+  const getShortLink = async (path: string): Promise<string> => {
+    const response = await fetch('/api/file-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to create link');
+    }
+    const data = await response.json();
+    return data.shortUrl as string;
+  };
+
+  const handleCopyLink = async (path: string) => {
     try {
-      const link = await generatePresignedUrl(bucketName, fileName);
+      const link = await getShortLink(path);
       await navigator.clipboard.writeText(link);
       toast.success('Link copied to clipboard!');
     } catch (error) {
@@ -86,7 +112,7 @@ const DownloadFiles = forwardRef((props, ref) => {
     }
   };
 
-  const handleDeleteFile = async (fileName: string) => {
+  const handleDeleteFile = async (path: string, fileName: string) => {
     const confirmed = await new Promise<boolean>((resolve) => {
       toast((t) => (
         <span>
@@ -117,7 +143,7 @@ const DownloadFiles = forwardRef((props, ref) => {
 
     if (confirmed) {
       try {
-        const response = await fetch(`/api/delete-file?fileName=${encodeURIComponent(fileName)}`, {
+        const response = await fetch(`/api/delete-file?path=${encodeURIComponent(path)}`, {
           method: 'DELETE',
         });
 
@@ -125,7 +151,7 @@ const DownloadFiles = forwardRef((props, ref) => {
           throw new Error('Failed to delete file');
         }
 
-        setFiles((prevFiles) => prevFiles.filter((file) => file.name !== fileName));
+        setFiles((prevFiles) => prevFiles.filter((file) => file.path !== path));
         toast.success('File deleted successfully!');
       } catch (error) {
         console.error('Error deleting file:', error);
@@ -187,7 +213,7 @@ const DownloadFiles = forwardRef((props, ref) => {
               <ul className="space-y-2">
                 {sortFiles(files).map((file) => (
                   <li
-                    key={file.name}
+                    key={file.path}
                     className="flex items-center justify-between p-2 rounded-md bg-gray-100 dark:bg-slate-800 relative group"
                   >
                     <div className="flex items-center space-x-2 min-w-0">
@@ -203,12 +229,17 @@ const DownloadFiles = forwardRef((props, ref) => {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2 bg-white p-2 rounded-md">
                       <button
                         onClick={async () => {
-                          const link = await generatePresignedUrl(bucketName, file.name);
-                          window.open(link, '_blank');
+                          try {
+                            const link = await getShortLink(file.path);
+                            window.open(link, '_blank');
+                          } catch (error) {
+                            console.error('Error downloading file:', error);
+                            toast.error('Failed to download file.');
+                          }
                         }}
                         className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
                         aria-label="Download file"
@@ -216,13 +247,13 @@ const DownloadFiles = forwardRef((props, ref) => {
                         <FiDownload className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => handleCopyLink(file.name)}
+                        onClick={() => handleCopyLink(file.path)}
                         className="text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500"
                       >
                         <FiCopy className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteFile(file.name)}
+                        onClick={() => handleDeleteFile(file.path, file.name)}
                         className="text-red-500 hover:text-red-600"
                       >
                         <FiTrash2 className="w-5 h-5" />
