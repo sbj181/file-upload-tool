@@ -12,6 +12,8 @@ export function isAllowedGroveryEmail(
   return emailDomain === domain.toLowerCase();
 }
 
-export function makeShortId(bytes = 4): string {
+// 6 bytes = 12 hex chars (~281 trillion) so short-link IDs aren't feasibly
+// brute-forced to find valid, unexpired links.
+export function makeShortId(bytes = 6): string {
   return crypto.randomBytes(bytes).toString('hex');
 }

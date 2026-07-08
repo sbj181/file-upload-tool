@@ -85,6 +85,7 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
             },
             body: JSON.stringify({
               fileName: files[i].name,
+              password,
             }),
           });
         } catch (notificationError) {

@@ -23,8 +23,8 @@ describe('isAllowedGroveryEmail', () => {
 });
 
 describe('makeShortId', () => {
-  it('makes an 8-char hex id by default', () => {
-    expect(makeShortId()).toMatch(/^[0-9a-f]{8}$/);
+  it('makes a 12-char hex id by default', () => {
+    expect(makeShortId()).toMatch(/^[0-9a-f]{12}$/);
   });
   it('is unique across calls', () => {
     expect(makeShortId()).not.toBe(makeShortId());

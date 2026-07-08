@@ -45,10 +45,10 @@ const UploadAuth: React.FC<UploadAuthProps> = ({ onAuthenticated }) => {
     }
 
     // Verify the password against the server (source of truth for UPLOAD_PASSWORD).
-    const res = await fetch('/api/upload-url', {
+    const res = await fetch('/api/verify-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password, fileName: '__probe__' }),
+      body: JSON.stringify({ password }),
     });
 
     if (res.ok) {
