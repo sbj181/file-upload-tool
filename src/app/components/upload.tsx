@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useDropzone } from 'react-dropzone';
 import { FiX, FiCheckCircle } from 'react-icons/fi'; 
-import { uploadFile } from '@/app/lib/storage';
+import { uploadFile, formatSpeed, formatEta } from '@/app/lib/storage';
 import { toast } from 'react-hot-toast'; // Import toast
 import { getFileIcon } from '@/app/utils/getFileIcon'; // Adjust the path according to your project structure
 import UploadAuth from './UploadAuth';
@@ -12,6 +12,7 @@ import UploadAuth from './UploadAuth';
 const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState<(number | 'complete')[]>([]); // Track upload progress or completion status for each file
+  const [stats, setStats] = useState<string[]>([]); // Live "12 MB/s · 2m 15s left" text per file
   const [loading, setLoading] = useState<boolean>(false); // Track the upload state
   const [disableUpload, setDisableUpload] = useState<boolean>(false); // Disable upload button after upload
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -49,13 +50,17 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
 
     try {
       const progressArr: (number | 'complete')[] = Array(files.length).fill(0);
+      const statsArr: string[] = Array(files.length).fill('');
       let anyUploaded = false; // Track if any file was uploaded
 
       for (let i = 0; i < files.length; i++) {
         try {
-          await uploadFile(files[i], password, (percentCompleted) => {
-            progressArr[i] = percentCompleted;
+          await uploadFile(files[i], password, (s) => {
+            progressArr[i] = s.percent;
             setProgress([...progressArr]);
+            const eta = formatEta(s.etaSeconds);
+            statsArr[i] = s.percent < 100 ? `${formatSpeed(s.bytesPerSec)}${eta ? ' · ' + eta : ''}` : '';
+            setStats([...statsArr]);
           });
           anyUploaded = true; // Mark as uploaded if no error
         } catch (uploadError) {
@@ -168,11 +173,17 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
 
                     {/* Show progress bar or complete message */}
                     {progress[index] !== 'complete' && progress[index] > 0 && (
-                      <div className="w-full bg-gray-200 rounded-full h-4 mt-2">
-                        <div
-                          className="bg-blue-600 h-4 rounded-full transition-all duration-300"
-                          style={{ width: `${progress[index]}%` }}
-                        ></div>
+                      <div className="mt-2">
+                        <div className="w-full bg-gray-200 rounded-full h-4">
+                          <div
+                            className="bg-blue-600 h-4 rounded-full transition-all duration-300"
+                            style={{ width: `${progress[index]}%` }}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between text-xs mt-1 text-slate-500 dark:text-slate-400">
+                          <span>{progress[index]}%</span>
+                          {stats[index] && <span>{stats[index]}</span>}
+                        </div>
                       </div>
                     )}
                     {progress[index] === 'complete' && (
