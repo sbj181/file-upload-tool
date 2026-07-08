@@ -58,8 +58,9 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
             setProgress([...progressArr]);
           });
           anyUploaded = true; // Mark as uploaded if no error
-        } catch (uploadError: any) {
-          if (uploadError.message === 'File type not allowed') {
+        } catch (uploadError) {
+          const message = uploadError instanceof Error ? uploadError.message : '';
+          if (message === 'File type not allowed') {
             toast.error(`File type not allowed: ${files[i].name}`, { position: 'top-center', duration: 5000 });
             continue;
           } else {
