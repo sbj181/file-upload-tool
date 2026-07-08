@@ -1,93 +1,51 @@
-# S3 File Upload Tool
+# Grovery File Upload Tool
 
-This is a file upload tool built using Next.js and Tailwind CSS. It allows users to drag and drop files for upload, and supports sharing and downloading of files through a generated S3 link.
+An internal file-transfer tool for The Grovery — for moving files too large to email,
+in both directions (share files out to clients, or let clients upload large files in).
+
+Built with **Next.js + Tailwind**, storage on **Supabase**, hosted on **Netlify**.
+Live at **https://files.thegrovery.com**.
+
+> Full architecture, env vars, and operational notes are in [`CLAUDE.md`](./CLAUDE.md).
 
 ## Features
 
-- **Drag and Drop File Upload**: Users can drag and drop files or select files manually for upload.
-- **AWS S3 Integration**: Uploaded files are stored in an AWS S3 bucket.
-- **Progress Indicator**: The upload progress is shown with a visual progress bar.
-- **Download and Share**: Uploaded files can be downloaded or shared via a generated link.
-- **Styled with Tailwind CSS**: Tailwind CSS is used for responsive and modern styling.
+- **Drag & drop upload** with real-time progress, live speed (MB/s) and ETA.
+- **Direct-to-storage uploads** (browser → Supabase), no server size/timeout limit (up to 5 GB).
+- **Password-gated uploads** — a shared password (comma-separated list supported) you can
+  hand to clients so they can send you large files.
+- **Employee-only file management** — Google sign-in restricted to `@thegrovery.com`,
+  verified server-side.
+- **Public share links** (`/f/{id}`) — send a client a link; they download without logging in.
 
-## Setup and Installation
+## Prerequisites
 
-### Prerequisites
+- Node.js 22, **pnpm**
+- A Supabase project (Storage bucket + a `short_links` table)
+- A Google OAuth client (for the employee sign-in)
+- A Resend account (optional, for upload notification emails)
 
-- Node.js
-- pnpm (preferred) or npm
-- AWS account with an S3 bucket and appropriate credentials
+## Setup
 
-### Installation
+```bash
+pnpm install
+cp .env.example .env.local   # then fill in the values (see CLAUDE.md for the shape)
+pnpm dev
+```
 
-1. Clone the repository:
+## Scripts
 
-   ```bash
-   git clone git@github.com:your-username/s3fileuploadtool.git
-   ```
-
-2. Navigate to the project directory:
-
-   ```bash
-   cd s3fileuploadtool
-   ```
-
-3. Install dependencies using pnpm:
-
-   ```bash
-   pnpm install
-   ```
-
-4. Set up your AWS credentials in a `.env.local` file in the root directory:
-
-   ```bash
-   AWS_ACCESS_KEY_ID=your-access-key-id
-   AWS_SECRET_ACCESS_KEY=your-secret-access-key
-   ```
-
-5. Start the development server:
-
-   ```bash
-   pnpm dev
-   ```
+```bash
+pnpm dev     # local dev server
+pnpm build   # production build
+pnpm test    # vitest unit tests
+```
 
 ## Deployment
 
-This project is ready to be deployed on Vercel. Simply link your GitHub repository, and Vercel will handle the build and deployment.
-
-## Build for Production
-
-To create a production build, run:
-
-```bash
-pnpm build
-```
-
-## Project Structure
-
-```
-├── src
-│   ├── app
-│   │   ├── components
-│   │   │   └── upload.tsx
-│   │   ├── fonts
-│   │   ├── lib
-│   │   │   └── s3.ts
-│   │   └── layout.tsx
-│   │   └── page.tsx
-│   └── styles
-│       └── globals.css
-├── tailwind.config.ts
-├── postcss.config.mjs
-├── next.config.mjs
-├── .env.local
-└── README.md
-```
+Hosted on Netlify (site `groveryfiles`), auto-deploying from the `main` branch of
+`github.com/sbj181/file-upload-tool`. Environment variables are set in the Netlify UI.
 
 ## License
 
-This project is licensed under the MIT License.
-
-👨🏼‍💻 Developed by Scott Johnson.  
-Check out my other projects at [sbjgraphics.com](http://sbjgraphics.com).
-
+MIT. 👨🏼‍💻 Originally by Scott Johnson.
