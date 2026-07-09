@@ -11,8 +11,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (new Date(row.expires_at).getTime() < Date.now()) {
     return res.status(404).json({ error: 'Link expired' });
   }
+  // Force the download to save as the real filename (the object's basename)
+  // instead of an unnamed attachment / the short id.
+  const filename = row.storage_path.split('/').pop() || 'download';
   const { data, error } = await supabase.storage
-    .from(BUCKET).createSignedUrl(row.storage_path, 60 * 60, { download: true });
+    .from(BUCKET).createSignedUrl(row.storage_path, 60 * 60, { download: filename });
   if (error || !data) return res.status(500).json({ error: 'Could not sign URL' });
   return res.status(200).json({ url: data.signedUrl });
 }
