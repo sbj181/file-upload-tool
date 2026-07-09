@@ -59,7 +59,8 @@ const Upload: React.FC<{ refreshFiles: () => void }> = ({ refreshFiles }) => {
             progressArr[i] = s.percent;
             setProgress([...progressArr]);
             const eta = formatEta(s.etaSeconds);
-            statsArr[i] = s.percent < 100 ? `${formatSpeed(s.bytesPerSec)}${eta ? ' · ' + eta : ''}` : '';
+            const retry = s.attempt && s.attempt > 1 ? `retry ${s.attempt}/3 · ` : '';
+            statsArr[i] = s.percent < 100 ? `${retry}${formatSpeed(s.bytesPerSec)}${eta ? ' · ' + eta : ''}` : '';
             setStats([...statsArr]);
           });
           anyUploaded = true; // Mark as uploaded if no error
