@@ -13,6 +13,14 @@ interface PartUrl {
 }
 
 /** PUT one part to its presigned S3 URL, reporting bytes uploaded for this part. */
+class PartError extends Error {
+  status?: number;
+  constructor(message: string, status?: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 function putPart(url: string, body: Blob, onPartProgress: (loaded: number) => void): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -25,11 +33,29 @@ function putPart(url: string, body: Blob, onPartProgress: (loaded: number) => vo
     xhr.onload = () =>
       xhr.status >= 200 && xhr.status < 300
         ? resolve()
-        : reject(new Error(`part failed (${xhr.status})`));
-    xhr.onerror = () => reject(new Error('network')); // dropped/corrupted connection
-    xhr.ontimeout = () => reject(new Error('timeout'));
+        : reject(new PartError(`part failed (${xhr.status})`, xhr.status));
+    xhr.onerror = () => reject(new PartError('network')); // dropped/corrupted connection
+    xhr.ontimeout = () => reject(new PartError('timeout'));
     xhr.send(body);
   });
+}
+
+// A 4xx (except 408 timeout / 429 rate-limit) is a permanent rejection — the
+// file is too big, unauthorized, etc. Retrying just wastes time.
+function isRetryable(err: unknown): boolean {
+  const status = err instanceof PartError ? err.status : undefined;
+  if (status === undefined) return true; // network/timeout — worth retrying
+  if (status === 408 || status === 429) return true;
+  return status < 400 || status >= 500;
+}
+
+function friendlyError(err: unknown): Error {
+  const status = err instanceof PartError ? err.status : undefined;
+  if (status === 413) {
+    return new Error('File exceeds the storage upload limit. Raise it in Supabase → Storage settings.');
+  }
+  if (status === 403) return new Error('Upload was rejected (403). The upload authorization may have expired.');
+  return err instanceof Error ? err : new Error('Upload failed');
 }
 
 /** PUT a part with retries — a corrupted/dropped connection re-sends just this part. */
@@ -45,13 +71,15 @@ async function putPartWithRetry(
       return;
     } catch (err) {
       lastErr = err;
+      // Don't burn retries on a permanent rejection (413 too large, 403, etc.).
+      if (!isRetryable(err)) throw friendlyError(err);
       onPartProgress(0, attempt); // reset this part's progress before retrying
       if (attempt < MAX_PART_ATTEMPTS) {
         await new Promise((r) => setTimeout(r, Math.min(1000 * attempt, 8000)));
       }
     }
   }
-  throw lastErr instanceof Error ? lastErr : new Error('Upload failed');
+  throw friendlyError(lastErr);
 }
 
 /**
