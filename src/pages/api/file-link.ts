@@ -20,5 +20,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const origin = req.headers.origin ||
     (req.headers.host ? `https://${req.headers.host}` : 'http://localhost:3000');
-  return res.status(200).json({ shortUrl: `${origin}/f/${id}` });
+  // Append the filename so the shared URL is recognizable (it's cosmetic — the id
+  // does the lookup). e.g. /f/<id>/My-File.zip
+  const filename = path.split('/').pop() || '';
+  const shortUrl = filename
+    ? `${origin}/f/${id}/${encodeURIComponent(filename)}`
+    : `${origin}/f/${id}`;
+  return res.status(200).json({ shortUrl });
 }

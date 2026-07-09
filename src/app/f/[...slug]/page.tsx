@@ -1,22 +1,24 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Image from 'next/image'; 
+import Image from 'next/image';
 import ThemeToggle from '@/app/components/ThemeToggler';
 
+// Route handles both /f/<id> and /f/<id>/<filename> — the filename segment is
+// only there to make shared URLs recognizable; the id (slug[0]) drives the lookup.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function ShortUrlRedirect(props: any) {
-  // Unwrap params Promise using React.use()
   const params = typeof props.params?.then === 'function'
     ? React.use(props.params)
     : props.params;
+  const id: string | undefined = Array.isArray(params?.slug) ? params.slug[0] : undefined;
 
   const [error, setError] = useState<string | null>(null);
 
   const resolveLink = async (): Promise<string | null> => {
-    if (!params) return null;
+    if (!id) return null;
     try {
-      const response = await fetch(`/api/resolve-link?id=${params.id}`);
+      const response = await fetch(`/api/resolve-link?id=${encodeURIComponent(id)}`);
       if (!response.ok) {
         throw new Error('Invalid or expired link');
       }
@@ -29,7 +31,7 @@ export default function ShortUrlRedirect(props: any) {
   };
 
   useEffect(() => {
-    if (!params) return;
+    if (!id) return;
     const fetchSignedUrl = async () => {
       const url = await resolveLink();
       if (url) window.location.href = url;
@@ -37,7 +39,7 @@ export default function ShortUrlRedirect(props: any) {
 
     fetchSignedUrl();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params?.id]);
+  }, [id]);
 
   const handleManualDownload = async () => {
     const url = await resolveLink();
@@ -59,22 +61,22 @@ export default function ShortUrlRedirect(props: any) {
     <div className="flex items-center justify-center min-h-screen dark:bg-gray-900">
       <div className="absolute top-4 right-4">
   <ThemeToggle />
-</div>  
+</div>
       <div className="text-center">
       <div className='w-full justify-center flex items-center mb-4'>
         {/* Logo rendering based on theme */}
-        <Image 
+        <Image
           src="/imgs/grovery-glyph-color.svg"
-          alt="Grovery Logo Light" 
+          alt="Grovery Logo Light"
           width={200}
           height={100}
-          className="mb-4 block" 
+          className="mb-4 block"
         />
-        
+
       </div>
         <h1 className="text-xl font-semibold mb-2 dark:text-white">Download Started...</h1>
         <p className="text-gray-600 dark:text-white/80">You may close this tab after your download begins.</p>
-        
+
         <button
             onClick={() => window.close()}
             className="mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition"
@@ -92,4 +94,4 @@ export default function ShortUrlRedirect(props: any) {
       </div>
     </div>
   );
-} 
+}
