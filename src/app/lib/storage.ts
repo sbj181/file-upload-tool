@@ -1,90 +1,139 @@
-const BUCKET = 'grovery-uploads';
-const MAX_ATTEMPTS = 3;
+const MAX_PART_ATTEMPTS = 6;
 
 export interface UploadStats {
   percent: number;      // 0–100
   bytesPerSec: number;  // current transfer rate
   etaSeconds: number;   // estimated time remaining
-  attempt?: number;     // which retry attempt is in flight (1 = first try)
+  attempt?: number;     // retry attempt of the part currently in flight (1 = first try)
 }
 
-/** Ask the server (password-gated) for a fresh signed upload URL. */
-async function getSignedUpload(file: File, password: string): Promise<{ path: string; token: string }> {
-  const res = await fetch('/api/upload-url', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password, fileName: file.name }),
-  });
-  if (!res.ok) {
-    throw new Error(res.status === 401 ? 'Invalid upload password' : 'Could not start upload');
-  }
-  return res.json();
+interface PartUrl {
+  partNumber: number;
+  url: string;
 }
 
-/** One PUT attempt straight to Supabase Storage, with live progress. */
-function putToStorage(
-  file: File,
-  path: string,
-  token: string,
-  attempt: number,
-  onProgress: (stats: UploadStats) => void
-): Promise<void> {
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/upload/sign/${BUCKET}/${path}?token=${token}`;
+/** PUT one part to its presigned S3 URL, reporting bytes uploaded for this part. */
+function putPart(url: string, body: Blob, onPartProgress: (loaded: number) => void): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', url);
-    xhr.setRequestHeader('content-type', file.type || 'application/octet-stream');
-    xhr.setRequestHeader('x-upsert', 'true');
-
-    const startedAt = Date.now();
+    // Do NOT set Content-Type: the presigned URL wasn't signed with one, and the
+    // sliced Blob has an empty type, so the browser sends no Content-Type header.
     xhr.upload.onprogress = (e) => {
-      if (!e.lengthComputable) return;
-      const elapsed = (Date.now() - startedAt) / 1000;
-      const bytesPerSec = elapsed > 0 ? e.loaded / elapsed : 0;
-      const etaSeconds = bytesPerSec > 0 ? (e.total - e.loaded) / bytesPerSec : 0;
-      onProgress({ percent: Math.round((e.loaded / e.total) * 100), bytesPerSec, etaSeconds, attempt });
+      if (e.lengthComputable) onPartProgress(e.loaded);
     };
     xhr.onload = () =>
       xhr.status >= 200 && xhr.status < 300
         ? resolve()
-        : reject(new Error(`Upload failed (${xhr.status})`));
-    xhr.onerror = () => reject(new Error('network')); // e.g. dropped/corrupted TLS connection
-    xhr.ontimeout = () => reject(new Error('network'));
-    xhr.send(file);
+        : reject(new Error(`part failed (${xhr.status})`));
+    xhr.onerror = () => reject(new Error('network')); // dropped/corrupted connection
+    xhr.ontimeout = () => reject(new Error('timeout'));
+    xhr.send(body);
   });
 }
 
+/** PUT a part with retries — a corrupted/dropped connection re-sends just this part. */
+async function putPartWithRetry(
+  url: string,
+  body: Blob,
+  onPartProgress: (loaded: number, attempt: number) => void
+): Promise<void> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= MAX_PART_ATTEMPTS; attempt++) {
+    try {
+      await putPart(url, body, (loaded) => onPartProgress(loaded, attempt));
+      return;
+    } catch (err) {
+      lastErr = err;
+      onPartProgress(0, attempt); // reset this part's progress before retrying
+      if (attempt < MAX_PART_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, Math.min(1000 * attempt, 8000)));
+      }
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Upload failed');
+}
+
 /**
- * Upload a file directly to Supabase Storage via a server-issued signed URL.
- * Password is verified server-side in /api/upload-url; the browser never sees
- * storage credentials. Uses XHR for real progress/speed/ETA (matters for
- * 500 MB–2 GB files) and auto-retries transient network failures — a dropped
- * TLS connection mid-transfer (ERR_SSL_BAD_RECORD_MAC_ALERT etc.) would
- * otherwise kill the whole upload.
+ * Upload a file to Supabase Storage via S3 multipart upload.
+ *
+ * The file is split into ~10 MB parts, each PUT directly to a presigned S3 URL.
+ * A dropped/corrupted connection only re-sends the current part (up to 6 tries),
+ * so large uploads survive flaky networks instead of restarting from zero.
+ * Password is verified server-side in every /api/upload/* route (S3 credentials
+ * never reach the browser); the server also creates and finalizes the upload.
  */
 export async function uploadFile(
   file: File,
   password: string,
   onProgress: (stats: UploadStats) => void
 ): Promise<{ path: string }> {
-  let lastErr: unknown;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      // Fresh signed URL per attempt (tokens are single-use / may expire).
-      const { path, token } = await getSignedUpload(file, password);
-      await putToStorage(file, path, token, attempt, onProgress);
-      return { path };
-    } catch (err) {
-      lastErr = err;
-      // Never retry a bad password — that won't fix itself.
-      if (err instanceof Error && err.message === 'Invalid upload password') throw err;
-      if (attempt < MAX_ATTEMPTS) {
-        // brief backoff, then retry from the start
-        await new Promise((r) => setTimeout(r, 1500 * attempt));
-      }
-    }
+  // 1. Server checks password, opens the multipart upload, returns presigned part URLs.
+  const createRes = await fetch('/api/upload/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      password,
+      fileName: file.name,
+      fileSize: file.size,
+      contentType: file.type || 'application/octet-stream',
+    }),
+  });
+  if (!createRes.ok) {
+    throw new Error(createRes.status === 401 ? 'Invalid upload password' : 'Could not start upload');
   }
-  throw lastErr instanceof Error ? lastErr : new Error('Upload failed');
+  const { key, uploadId, partSize, urls } = (await createRes.json()) as {
+    key: string;
+    uploadId: string;
+    partSize: number;
+    urls: PartUrl[];
+  };
+
+  const total = file.size;
+  const startedAt = Date.now();
+  let completedBytes = 0; // bytes from fully-uploaded parts
+
+  const report = (currentPartLoaded: number, attempt: number) => {
+    const done = completedBytes + currentPartLoaded;
+    const elapsed = (Date.now() - startedAt) / 1000;
+    const bytesPerSec = elapsed > 0 ? done / elapsed : 0;
+    const etaSeconds = bytesPerSec > 0 ? (total - done) / bytesPerSec : 0;
+    onProgress({
+      percent: total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0,
+      bytesPerSec,
+      etaSeconds,
+      attempt,
+    });
+  };
+
+  try {
+    // 2. Upload each part sequentially (with retry).
+    for (const { partNumber, url } of urls) {
+      const start = (partNumber - 1) * partSize;
+      const end = Math.min(start + partSize, total);
+      const chunk = file.slice(start, end); // Blob with empty type — no Content-Type sent
+      await putPartWithRetry(url, chunk, (loaded, attempt) => report(loaded, attempt));
+      completedBytes = end;
+    }
+
+    // 3. Server finalizes (fetches part ETags itself, then CompleteMultipartUpload).
+    const completeRes = await fetch('/api/upload/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, key, uploadId }),
+    });
+    if (!completeRes.ok) throw new Error('Could not finalize upload');
+
+    return { path: key };
+  } catch (err) {
+    // Best-effort cleanup so abandoned parts don't linger.
+    fetch('/api/upload/abort', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, key, uploadId }),
+    }).catch(() => {});
+    throw err;
+  }
 }
 
 /** Format bytes/sec as a human string, e.g. "12.3 MB/s". */

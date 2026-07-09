@@ -10,6 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1083.0",
+    "@aws-sdk/s3-request-presigner": "^3.1083.0",
     "@supabase/supabase-js": "^2.110.0",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.7",
