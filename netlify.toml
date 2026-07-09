@@ -7,10 +7,3 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-
-# Canonical domain is files.thegrovery.com. Redirect the legacy .dev URL to it.
-[[redirects]]
-  from = "https://file-upload-tool.thegrovery.dev/*"
-  to = "https://files.thegrovery.com/:splat"
-  status = 301
-  force = true
